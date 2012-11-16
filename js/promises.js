@@ -30,8 +30,8 @@ exports.defer = function defer() {
         }
       } else {
         handlers.push({
-          resolved: callback,
-          rejected: errback,
+          callback: callback,
+          errback: errback,
           defered: d
         })
       }
@@ -40,37 +40,42 @@ exports.defer = function defer() {
     }
   }
 
+  function runHandler(handler, val, fulfilled) {
+    var callback = fulfilled ? handler.callback : handler.errback;
+    var next = fulfilled ? handler.defered.resolve : handler.defered.reject;
+
+    try {
+      if(callback) {
+        handler.defered.resolve(callback(val));
+      } else {
+        next(val);
+      }
+    } catch(e) {
+      handler.defered.reject(e);
+    }
+  }
 
   var defered = {
+    _handlers: handlers,
+    _value: value,
+    _error: error,
     promise: promise,
 
     resolve: function(val) {
       value = val;
-      handlers.forEach(function(handler) {
-        try {
-          if(handler.resolved) {
-            handler.defered.resolve(handler.resolved(val));
-          } else {
-            handler.defered.resolve(val);
-          }
-        } catch(e) {
-          handler.defered.reject(e);
-        }
+      handlers.forEach(function(h) {
+        process.nextTick(function() {
+          runHandler(h, val, true);
+        })
       })
     },
 
     reject: function(err) {
       error = err;
-      handlers.forEach(function(handler) {
-        try {
-          if(handler.rejected) {
-            handler.defered.resolve(handler.rejected(val));
-          } else {
-            handler.defered.reject(val);
-          }
-        } catch(e) {
-          handler.defered.reject(e);
-        }
+      handlers.forEach(function(h) {
+        process.nextTick(function() {
+          runHandler(h, err, false);
+        })
       })
     }
   }
