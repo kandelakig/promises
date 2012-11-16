@@ -84,16 +84,35 @@ testSuite.push(function() {
   try {
     d.promise.then().then().end()
     Assert.fail()
-  } catch (e) {
+  } catch(e) {
     Assert.equal(e, 'BOOM!')
   }
-  
+})
+
+testSuite.push(function() {
+  console.log('Test#6 : Get property of resolution value')
+
+  var d = Promises.defer()
+
+  d.promise.get('foo').then(function(val) {
+    Assert.equal(val, 'bar')
+  }).end()
+
+  d.resolve({
+    foo: 'bar',
+    baz: 7
+  })
+
+  d.promise.get('baz').then(function(val) {
+    Assert.equal(val, 7)
+  }).end()
+
 })
 
 testSuite.forEach(function(test, ind) {
   try {
     test.call()
   } catch(e) {
-    console.error('Test#' + ind + ' failed', e)
+    console.error('Test#' + (ind + 1) + ' failed', e)
   }
 })

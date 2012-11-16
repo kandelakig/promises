@@ -32,6 +32,12 @@ exports.defer = function defer() {
       return d.promise
     },
 
+    get: function(property) {
+      return this.then(function(val){
+        return val[property]
+      })
+    },
+
     end: function() {
       if(error) throw error
       else handlers.push({})
