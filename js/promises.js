@@ -1,8 +1,8 @@
 exports.defer = function defer() {
-  "use strict";
+  "use strict"
 
-  var handlers = [];
-  var value, error;
+  var handlers = []
+  var value, error
 
   var promise = {
     then: function(callback, errback) {
@@ -11,22 +11,22 @@ exports.defer = function defer() {
       if(value) {
         if(callback) {
           try {
-            d.resolve(callback(value));
+            d.resolve(callback(value))
           } catch(e) {
-            d.reject(e);
+            d.reject(e)
           }
         } else {
-          d.resolve(value);
+          d.resolve(value)
         }
       } else if(error) {
         if(errback) {
           try {
-            d.resolve(errback(error));
+            d.resolve(errback(error))
           } catch(e) {
-            d.reject(e);
+            d.reject(e)
           }
         } else {
-          d.reject(e);
+          d.reject(error)
         }
       } else {
         handlers.push({
@@ -36,22 +36,26 @@ exports.defer = function defer() {
         })
       }
 
-      return d.promise;
+      return d.promise
+    },
+
+    end: function() {
+      if(error) throw error
+      else handlers.push({})
     }
   }
 
   function runHandler(handler, val, fulfilled) {
-    var callback = fulfilled ? handler.callback : handler.errback;
-    var next = fulfilled ? handler.defered.resolve : handler.defered.reject;
+    if(handler.defered) {
+      var callback = fulfilled ? handler.callback : handler.errback
+      var next = fulfilled ? handler.defered.resolve : handler.defered.reject
 
-    try {
-      if(callback) {
-        handler.defered.resolve(callback(val));
-      } else {
-        next(val);
+      try {
+        if(callback) handler.defered.resolve(callback(val))
+        else next(val)
+      } catch(e) {
+        handler.defered.reject(e)
       }
-    } catch(e) {
-      handler.defered.reject(e);
     }
   }
 
@@ -62,24 +66,24 @@ exports.defer = function defer() {
     promise: promise,
 
     resolve: function(val) {
-      value = val;
-      handlers.forEach(function(h) {
+      value = val
+      handlers.forEach(function(handler) {
         process.nextTick(function() {
-          runHandler(h, val, true);
+          runHandler(handler, val, true)
         })
       })
     },
 
     reject: function(err) {
-      error = err;
-      handlers.forEach(function(h) {
+      error = err
+      handlers.forEach(function(handler) {
+        if(!handler.defered) throw err
         process.nextTick(function() {
-          runHandler(h, err, false);
+          runHandler(handler, err, false)
         })
       })
     }
   }
 
-  return defered;
-
+  return defered
 }
