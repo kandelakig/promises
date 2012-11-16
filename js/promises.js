@@ -1,56 +1,59 @@
-function defer() {
+exports.defer = function defer() {
+  "use strict";
+
   var handlers = [];
+  var value, error;
 
-  var value;
-  var error;
+  var promise = {
+    then: function(callback, errback) {
+      var d = defer()
 
-  return {
-    promise: {
-      then: function(callback, errback) {
-        var d = defer()
-        
-        if (value) {
-          if (callback) {
-            try {
-              d.resolve(callback(value));
-            } catch (e) {
-              d.reject(e);
-            }
-          } else {
-            d.resolve(value);
-          }
-        } else if (error) {
-          if (errback) {
-            try {
-              d.resolve(errback(error));
-            } catch (e) {
-              d.reject(e);
-            }
-          } else {
+      if(value) {
+        if(callback) {
+          try {
+            d.resolve(callback(value));
+          } catch(e) {
             d.reject(e);
           }
         } else {
-          handlers.push({
-            resolved: callback,
-            rejected: errback,
-            defered: d
-          })
+          d.resolve(value);
         }
-
-        return d.promise;
+      } else if(error) {
+        if(errback) {
+          try {
+            d.resolve(errback(error));
+          } catch(e) {
+            d.reject(e);
+          }
+        } else {
+          d.reject(e);
+        }
+      } else {
+        handlers.push({
+          resolved: callback,
+          rejected: errback,
+          defered: d
+        })
       }
-    },
+
+      return d.promise;
+    }
+  }
+
+
+  var defered = {
+    promise: promise,
 
     resolve: function(val) {
       value = val;
-      handlers.forEach(function(handler){
+      handlers.forEach(function(handler) {
         try {
-          if (handler.resolved) {
+          if(handler.resolved) {
             handler.defered.resolve(handler.resolved(val));
           } else {
             handler.defered.resolve(val);
           }
-        } catch (e) {
+        } catch(e) {
           handler.defered.reject(e);
         }
       })
@@ -58,17 +61,20 @@ function defer() {
 
     reject: function(err) {
       error = err;
-      handlers.forEach(function(handler){
+      handlers.forEach(function(handler) {
         try {
-          if (handler.rejected) {
+          if(handler.rejected) {
             handler.defered.resolve(handler.rejected(val));
           } else {
             handler.defered.reject(val);
           }
-        } catch (e) {
+        } catch(e) {
           handler.defered.reject(e);
         }
       })
     }
   }
+
+  return defered;
+
 }
