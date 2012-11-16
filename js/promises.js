@@ -8,33 +8,26 @@ exports.defer = function defer() {
     then: function(callback, errback) {
       var d = defer()
 
-      if(value) {
-        if(callback) {
+      function execute(fn, val) {
+        var next = error ? d.reject : d.resolve
+        if(fn) {
           try {
-            d.resolve(callback(value))
+            d.resolve(fn(val))
           } catch(e) {
             d.reject(e)
           }
         } else {
-          d.resolve(value)
+          next(val)
         }
-      } else if(error) {
-        if(errback) {
-          try {
-            d.resolve(errback(error))
-          } catch(e) {
-            d.reject(e)
-          }
-        } else {
-          d.reject(error)
-        }
-      } else {
-        handlers.push({
-          callback: callback,
-          errback: errback,
-          defered: d
-        })
       }
+
+      if(value) execute(callback, value)
+      else if(error) execute(errback, error)
+      else handlers.push({
+        callback: callback,
+        errback: errback,
+        defered: d
+      })
 
       return d.promise
     },

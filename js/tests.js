@@ -41,7 +41,7 @@ testSuite.push(function() {
 
   var d = Promises.defer()
 
-  console.log('  Resolving promise with value = 2')
+  console.log('  Resolving promise with value = \'Hello\'')
   d.resolve('Hello')
 
   console.log('  Getting promise and registering callback')
