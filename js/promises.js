@@ -62,9 +62,6 @@ exports.defer = function defer() {
   }
 
   var defered = {
-    _handlers: handlers,
-    _value: value,
-    _error: error,
     promise: promise,
 
     resolve: function(val) {
