@@ -4,12 +4,15 @@ exports.defer = function defer() {
   var handlers = []
   var value, error
 
+  var complete = false
+  var success = false
+
   var promise = {
     then: function(callback, errback) {
       var d = defer()
 
       function execute(fn, val) {
-        var next = error ? d.reject : d.resolve
+        var next = success ? d.resolve : d.reject
         if(fn) {
           try {
             d.resolve(fn(val))
@@ -21,8 +24,8 @@ exports.defer = function defer() {
         }
       }
 
-      if(value) execute(callback, value)
-      else if(error) execute(errback, error)
+      if(complete && success) execute(callback, value)
+      else if(complete) execute(errback, error)
       else handlers.push({
         callback: callback,
         errback: errback,
@@ -39,7 +42,7 @@ exports.defer = function defer() {
     },
 
     end: function() {
-      if(error) throw error
+      if(complete && !success) throw error
       else handlers.push({})
     }
   }
@@ -65,20 +68,24 @@ exports.defer = function defer() {
     promise: promise,
 
     resolve: function(val) {
+      if (complete) throw 'Promise can be resolved only once'
       value = val
+      complete = success = true
       handlers.forEach(function(handler) {
         process.nextTick(function() {
-          runHandler(handler, val, true)
+          runHandler(handler, value, true)
         })
       })
     },
 
     reject: function(err) {
+      if (complete) throw 'Promise can be resolved only once'
       error = err
+      complete = true
       handlers.forEach(function(handler) {
-        if(!handler.defered) throw err
+        if(!handler.defered) throw error
         process.nextTick(function() {
-          runHandler(handler, err, false)
+          runHandler(handler, error, false)
         })
       })
     }

@@ -3,8 +3,8 @@ var Promises = require('./promises')
 
 var testSuite = []
 
-testSuite.push(function() {
-  console.log('Test#1 : Get promise, add the callback and resolve it')
+testSuite.push(function(testCallback) {
+  var name = 'Get promise, add the callback and resolve it'
 
   var d = Promises.defer()
 
@@ -27,6 +27,10 @@ testSuite.push(function() {
 
     console.log('  [Inside the "chained" callback] Checking testVal, must be already changed')
     Assert.equal(testVal, 3, 'testVal: expected 3, got ' + testVal)
+  }).then(function(val) {
+    testCallback(name)
+  }, function(err) {
+    testCallback(name, err)
   }).end()
 
   console.log('  Resolving promise with value = 2')
@@ -36,8 +40,8 @@ testSuite.push(function() {
   Assert.equal(testVal, 1)
 })
 
-testSuite.push(function() {
-  console.log('Test#2 : Add the callback to the already resolved promise')
+testSuite.push(function(testCallback) {
+  var name = 'Add the callback to the already resolved promise'
 
   var d = Promises.defer()
 
@@ -46,36 +50,105 @@ testSuite.push(function() {
 
   console.log('  Getting promise and registering callback')
   d.promise.then(function(val) {
-    Assert.equal(val, 'Hello', 'val: expected \'Hello\' got \'' + val + '\'')
+    try {
+      Assert.equal(val, 'Hello', 'val: expected \'Hello\' got \'' + val + '\'')
+      testCallback(name)
+    } catch(err) {
+      testCallback(name, err)
+    }
   }).end()
 })
 
-testSuite.push(function() {
-  console.log('Test#3 : Reject, catch and handle')
+testSuite.push(function(testCallback) {
+  var name = 'Resolve promise twice'
+
+  var d = Promises.defer()
+
+  d.resolve(1)
+  try {
+    d.resolve(2)
+    Assert.fail(undefined, 'Error: Promise can be resolved only once', 'Second resolve should not pass')
+  } catch(e) {
+    if(e == 'Promise can be resolved only once') {
+      testCallback(name)
+    } else {
+      testCallback(name, e)
+    }
+  }
+})
+
+testSuite.push(function(testCallback) {
+  var name = 'Return nothing from `then` callback'
+
+  var d = Promises.defer()
+
+  d.promise.then(function(val) {
+    console.log('  [Inside the callback] Doing nothing and not returning anything')
+  }).then(function(val) {
+    console.log('  [Inside the "chained" callback] `val` must be `undefined`')
+    Assert.strictEqual(val, undefined, 'Next callback in chain must get `undefined` callback')
+  }).then(function(val) {
+    testCallback(name)
+  }, function(err) {
+    testCallback(name, err)
+  })
+
+  d.resolve(0)
+})
+
+testSuite.push(function(testCallback) {
+  var name = 'Return nothing from `then` callback; V2 with already resolved promise'
+
+  console.log('  Getting promise and resolving it at once')
+  var d = Promises.defer()
+  d.resolve(0)
+
+  d.promise.then(function(val) {
+    console.log('  [Inside the callback] Doing nothing and not returning anything')
+  }).then(function(val) {
+    console.log('  [Inside the "chained" callback] `val` must be `undefined`')
+    Assert.strictEqual(val, undefined, 'Next callback in chain must get `undefined` callback')
+  }).then(function(val) {
+    testCallback(name)
+  }, function(err) {
+    testCallback(name, err)
+  })
+})
+
+testSuite.push(function(testCallback) {
+  var name = 'Reject, catch and handle'
 
   var d = Promises.defer()
 
   d.promise.then(null, function(err) {
     Assert.equal(err, 'BOOM!', 'err: expected \'BOOM!\' got \'' + err + '\'')
+  }).then(function(val) {
+    testCallback(name)
+  }, function(err) {
+    testCallback(name, err)
   }).end()
 
   d.reject('BOOM!')
 })
 
-testSuite.push(function() {
-  console.log('Test#4 : Reject and pass in chain, then catch')
+testSuite.push(function(testCallback) {
+  var name = 'Reject and pass in chain, then catch'
 
   var d = Promises.defer()
 
   d.promise.then(console.log).then().then(null, function(err) {
     Assert.equal(err, 'BOOM!', 'err: expected \'BOOM!\' got \'' + err + '\'')
+  }).then(function(val) {
+    testCallback(name)
+  }, function(err) {
+    testCallback(name, err)
   }).end()
 
   d.reject('BOOM!')
 })
 
-testSuite.push(function() {
-  console.log('Test#5 : Reject and do not catch')
+testSuite.push(function(testCallback) {
+  var name = 'Reject and do not catch'
 
   var d = Promises.defer()
 
@@ -86,17 +159,19 @@ testSuite.push(function() {
     Assert.fail()
   } catch(e) {
     Assert.equal(e, 'BOOM!')
+    testCallback(name)
   }
 })
 
-testSuite.push(function() {
-  console.log('Test#6 : Get property of resolution value')
+testSuite.push(function(testCallback) {
+  var name = 'Get property of resolution value'
 
   var d = Promises.defer()
 
-  d.promise.get('foo').then(function(val) {
+  var p = d.promise.get('foo').then(function(val) {
+    console.log('  foo must be \'bar\'')
     Assert.equal(val, 'bar')
-  }).end()
+  })
 
   d.resolve({
     foo: 'bar',
@@ -104,15 +179,68 @@ testSuite.push(function() {
   })
 
   d.promise.get('baz').then(function(val) {
+    console.log('  baz must be 7')
     Assert.equal(val, 7)
+  }).then(function(val) {
+    p.then(function(val2) {
+      testCallback(name)
+    }, function(err) {
+      testCallback(name, err)
+    }).end()
+  }, function(err) {
+    p.then(null, function(e) {}).then(function(val) {
+      testCallback(name, err)
+    })
   }).end()
-
 })
 
-testSuite.forEach(function(test, ind) {
-  try {
-    test.call()
-  } catch(e) {
-    console.error('Test#' + (ind + 1) + ' failed', e)
+var totalTests = testSuite.length
+var testCount = 0
+var success = 0
+var failed = 0
+
+console.info('-----------------------------')
+console.info('Tests to run totally: ' + totalTests)
+console.info('-----------------------------')
+
+function run() {
+    var test = testSuite.shift()
+    if(test) {
+      try {
+        console.info('')
+        console.info('Running test #' + (testCount + 1) + '...')
+        test(function(testName, err) {
+          testCount++;
+          if(err) {
+            failed++;
+            console.info('Test #' + testCount + ' (' + testName + '): FAILED, cause:')
+            console.info(err)
+          } else {
+            success++;
+            console.info('Test #' + testCount + ' (' + testName + '): SUCCESS')
+          }
+          run()
+        })
+      } catch(err) {
+        testCount++;
+        failed++;
+        console.info('Test #' + testCount + ' : FAILED')
+        console.info('  cause:', err)
+        run()
+      }
+    } else {
+      console.info('')
+      console.info('-----------------------------')
+      console.info('Successful tests: ' + success)
+      console.info('Failed tests: ' + failed)
+      console.info('')
+      if(failed > 0) {
+        console.info('TESTS FAILED!')
+      } else {
+        console.info('TESTS PASSED SUCCESSFULLY')
+      }
+      console.info('-----------------------------')
+    }
   }
-})
+
+run()
