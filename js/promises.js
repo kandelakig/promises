@@ -1,4 +1,4 @@
-exports.pending = exports.defer = function defer() {
+var defer = function() {
   "use strict"
 
   var handlers = []
@@ -89,4 +89,18 @@ exports.pending = exports.defer = function defer() {
   }
 
   return defered
+}
+
+exports.pending = exports.defer = defer
+
+exports.fulfilled = function(val) {
+  var d = defer()
+  d.fulfill(val)
+  return d.promise
+}
+
+exports.rejected = function(err) {
+  var d = defer()
+  d.reject(err)
+  return d.promise
 }
