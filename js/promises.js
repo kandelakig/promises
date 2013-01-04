@@ -65,7 +65,7 @@ var defer = function() {
     promise: promise,
 
     fulfill: function(val) {
-      if (complete) throw 'Promise can be resolved only once'
+      if (complete) return
       value = val
       complete = success = true
       handlers.forEach(function(handler) {
@@ -76,7 +76,7 @@ var defer = function() {
     },
 
     reject: function(err) {
-      if (complete) throw 'Promise can be resolved only once'
+      if (complete) return
       error = err
       complete = true
       handlers.forEach(function(handler) {

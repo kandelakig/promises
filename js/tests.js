@@ -64,17 +64,13 @@ testSuite.push(function(testCallback) {
 
   var d = Promises.defer()
 
+  d.promise.then(function(val) {
+    Assert.equal(val, 1, 'val: expected 1 got ' + val)
+    testCallback(name)
+  })
+
   d.fulfill(1)
-  try {
-    d.fulfill(2)
-    Assert.fail(undefined, 'Error: Promise can be resolved only once', 'Second fulfill should not pass')
-  } catch(e) {
-    if(e == 'Promise can be resolved only once') {
-      testCallback(name)
-    } else {
-      testCallback(name, e)
-    }
-  }
+  d.fulfill(2)
 })
 
 testSuite.push(function(testCallback) {
