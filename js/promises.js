@@ -71,11 +71,32 @@ var defer = function() {
         if(complete) return
         value = val
         complete = success = true
-        handlers.forEach(function(handler) {
-          process.nextTick(function() {
-            runHandler(handler, value, true)
+        if(value && value.then instanceof Function) {
+          // If resolution value is a promise itself
+          // run handers only when it resolves
+          value.then(function(newValue) {
+            handlers.forEach(function(handler) {
+              process.nextTick(function() {
+                runHandler(handler, newValue, true)
+              })
+            })
+          }, function(newError) {
+            handlers.forEach(function(handler) {
+              if(!handler.defered) throw newError
+              process.nextTick(function() {
+                runHandler(handler, newError, false)
+              })
+            })
           })
-        })
+        } else {
+          // If resolution value is not a promise
+          // just run handlers with that value
+          handlers.forEach(function(handler) {
+            process.nextTick(function() {
+              runHandler(handler, value, true)
+            })
+          })
+        }
       },
 
       reject: function(err) {
