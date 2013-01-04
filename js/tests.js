@@ -144,22 +144,6 @@ testSuite.push(function(testCallback) {
 })
 
 testSuite.push(function(testCallback) {
-  var name = 'Reject and do not catch'
-
-  var d = Promises.defer()
-
-  d.reject('BOOM!')
-
-  try {
-    d.promise.then().then().end()
-    Assert.fail()
-  } catch(e) {
-    Assert.equal(e, 'BOOM!')
-    testCallback(name)
-  }
-})
-
-testSuite.push(function(testCallback) {
   var name = 'Get property of resolution value'
 
   var d = Promises.defer()
