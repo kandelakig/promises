@@ -14,7 +14,7 @@ var defer = function() {
         function execute(fn, val) {
             var next = success ? d.fulfill : d.reject
             process.nextTick(function() {
-              if(fn) {
+              if(fn instanceof Function) {
                 try {
                   d.fulfill(fn(val))
                 } catch(e) {
@@ -26,9 +26,10 @@ var defer = function() {
             })
           }
 
-        if(complete && success) execute(callback, value)
-        else if(complete) execute(errback, error)
-        else handlers.push({
+        if(complete) {
+          if(success) execute(callback, value)
+          else execute(errback, error)
+        } else handlers.push({
           callback: callback,
           errback: errback,
           defered: d
@@ -55,7 +56,7 @@ var defer = function() {
         var next = fulfilled ? handler.defered.fulfill : handler.defered.reject
 
         try {
-          if(callback) handler.defered.fulfill(callback(val))
+          if(callback instanceof Function) handler.defered.fulfill(callback(val))
           else next(val)
         } catch(e) {
           handler.defered.reject(e)
