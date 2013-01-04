@@ -1,0 +1,21 @@
+{
+  "name": "promises",
+  "version": "0.0.1",
+  "description": "Implementation of CommonJS Promises/A+ API",
+  "main": "promises",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kandelakig/promises.git"
+  },
+  "author": "Giorgi Kandelaki (https://github.com/kandelakig)",
+  "license": "WTFPL",
+  "devDependencies": {
+    "promises-aplus-tests": "*"
+  },
+  "scripts": {
+    "test": "node tests && promises-aplus-tests Promises"
+  }
+}

@@ -4,7 +4,7 @@ var Promises = require('./promises')
 var testSuite = []
 
 testSuite.push(function(testCallback) {
-  var name = 'Get promise, add the callback and resolve it'
+  var name = 'Get promise, add the callback and fulfill it'
 
   var d = Promises.defer()
 
@@ -34,7 +34,7 @@ testSuite.push(function(testCallback) {
   }).end()
 
   console.log('  Resolving promise with value = 2')
-  d.resolve(2)
+  d.fulfill(2)
 
   console.log('  Checking testVal must not be changed yet, cause the resolution callback have to be put on the event queue NOT executed immediately')
   Assert.equal(testVal, 1)
@@ -46,7 +46,7 @@ testSuite.push(function(testCallback) {
   var d = Promises.defer()
 
   console.log('  Resolving promise with value = \'Hello\'')
-  d.resolve('Hello')
+  d.fulfill('Hello')
 
   console.log('  Getting promise and registering callback')
   d.promise.then(function(val) {
@@ -64,10 +64,10 @@ testSuite.push(function(testCallback) {
 
   var d = Promises.defer()
 
-  d.resolve(1)
+  d.fulfill(1)
   try {
-    d.resolve(2)
-    Assert.fail(undefined, 'Error: Promise can be resolved only once', 'Second resolve should not pass')
+    d.fulfill(2)
+    Assert.fail(undefined, 'Error: Promise can be resolved only once', 'Second fulfill should not pass')
   } catch(e) {
     if(e == 'Promise can be resolved only once') {
       testCallback(name)
@@ -93,7 +93,7 @@ testSuite.push(function(testCallback) {
     testCallback(name, err)
   })
 
-  d.resolve(0)
+  d.fulfill(0)
 })
 
 testSuite.push(function(testCallback) {
@@ -101,7 +101,7 @@ testSuite.push(function(testCallback) {
 
   console.log('  Getting promise and resolving it at once')
   var d = Promises.defer()
-  d.resolve(0)
+  d.fulfill(0)
 
   d.promise.then(function(val) {
     console.log('  [Inside the callback] Doing nothing and not returning anything')
@@ -173,7 +173,7 @@ testSuite.push(function(testCallback) {
     Assert.equal(val, 'bar')
   })
 
-  d.resolve({
+  d.fulfill({
     foo: 'bar',
     baz: 7
   })

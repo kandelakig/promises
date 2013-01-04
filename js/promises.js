@@ -1,4 +1,4 @@
-exports.defer = function defer() {
+exports.pending = exports.defer = function defer() {
   "use strict"
 
   var handlers = []
@@ -12,10 +12,10 @@ exports.defer = function defer() {
       var d = defer()
 
       function execute(fn, val) {
-        var next = success ? d.resolve : d.reject
+        var next = success ? d.fulfill : d.reject
         if(fn) {
           try {
-            d.resolve(fn(val))
+            d.fulfill(fn(val))
           } catch(e) {
             d.reject(e)
           }
@@ -50,10 +50,10 @@ exports.defer = function defer() {
   function runHandler(handler, val, fulfilled) {
     if(handler.defered) {
       var callback = fulfilled ? handler.callback : handler.errback
-      var next = fulfilled ? handler.defered.resolve : handler.defered.reject
+      var next = fulfilled ? handler.defered.fulfill : handler.defered.reject
 
       try {
-        if(callback) handler.defered.resolve(callback(val))
+        if(callback) handler.defered.fulfill(callback(val))
         else next(val)
       } catch(e) {
         handler.defered.reject(e)
@@ -64,7 +64,7 @@ exports.defer = function defer() {
   var defered = {
     promise: promise,
 
-    resolve: function(val) {
+    fulfill: function(val) {
       if (complete) throw 'Promise can be resolved only once'
       value = val
       complete = success = true
