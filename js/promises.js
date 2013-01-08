@@ -7,35 +7,41 @@ function defer() {
   var complete = false
   var success = false
 
+  function executeHandlerFn(fn, next) {
+    if(fn instanceof Function) try {
+      next.fulfill(fn(resolutionValue))
+    } catch(e) {
+      next.reject(e)
+    } else {
+      (success ? next.fulfill : next.reject)(resolutionValue)
+    }
+  }
+
+  function runHandlers() {
+    handlers.forEach(function(handler) {
+      if(handler.defered) {
+        var fn = success ? handler.callback : handler.errback
+        executeHandlerFn(fn, handler.defered)
+      } else if(!success) throw resolutionValue
+    })
+  }
+
   var promise = {
     then: function(callback, errback) {
-      var d = defer()
-
-      function execute(fn, val) {
-          var next = success ? d.fulfill : d.reject
-          process.nextTick(function() {
-            if(fn instanceof Function) {
-              try {
-                d.fulfill(fn(val))
-              } catch(e) {
-                d.reject(e)
-              }
-            } else {
-              next(val)
-            }
-          })
-        }
+      var next = defer()
 
       if(complete) {
-        if(success) execute(callback, resolutionValue)
-        else execute(errback, resolutionValue)
+        process.nextTick(function() {
+          var fn = success ? callback : errback
+          executeHandlerFn(fn, next)
+        })
       } else handlers.push({
         callback: callback,
         errback: errback,
-        defered: d
+        defered: next
       })
 
-      return d.promise
+      return next.promise
     },
 
     get: function(property) {
@@ -48,21 +54,6 @@ function defer() {
       if(complete && !success) throw resolutionValue
       else handlers.push({})
     }
-  }
-
-  function runHandlers() {
-    handlers.forEach(function(handler) {
-      if(handler.defered) {
-        var callback = success ? handler.callback : handler.errback
-        var next = success ? handler.defered.fulfill : handler.defered.reject
-        try {
-          if(callback instanceof Function) handler.defered.fulfill(callback(resolutionValue))
-          else next(resolutionValue)
-        } catch(e) {
-          handler.defered.reject(e)
-        }
-      } else if(!success) throw resolutionValue
-    })
   }
 
   function fulfill(val) {
