@@ -174,6 +174,49 @@ testSuite.push(function(testCallback) {
   }).end()
 })
 
+testSuite.push(function(testCallback) {
+  var name = 'Test FIFO'
+
+  var counter = 0
+
+  var d = require('./promises').defer()
+  var p = d.promise
+
+  function failOnReject(err) {
+    testCallback(name, err)
+  }
+
+  var p1 = p.then(function(){ Assert.equal(++counter, 1) }, failOnReject)
+
+  p1.then(function(){ Assert.equal(++counter, 8) }, failOnReject)
+  p1.then(function(){ Assert.equal(++counter, 9) }, failOnReject)
+
+  var p2 = p.then(function(){ Assert.equal(++counter, 2) }, failOnReject)
+
+  var p3 = p.then(function(){ Assert.equal(++counter, 3) }, failOnReject)
+
+  p3.then(function(){ Assert.equal(++counter, 10) }, failOnReject)
+
+  var p32 = p3.then(function(){ Assert.equal(++counter, 11) }, failOnReject)
+  p32.then(function(){ Assert.equal(++counter, 15) }, failOnReject)
+  p32.then(function(){
+    Assert.equal(++counter, 16)
+    testCallback(name)
+  }, failOnReject)
+
+  p3.then(function(){ Assert.equal(++counter, 12) }, failOnReject)
+  p3.then(function(){ Assert.equal(++counter, 13) }, failOnReject)
+
+  var p4 = p.then(function(){ Assert.equal(++counter, 4) }, failOnReject)
+  var p5 = p.then(function(){ Assert.equal(++counter, 5) }, failOnReject)
+  d.fulfill()
+
+  p5.then(function(){ Assert.equal(++counter, 14) }, failOnReject)
+
+  var p6 = p.then(function(){ Assert.equal(++counter, 6) }, failOnReject)
+  var p7 = p.then(function(){ Assert.equal(++counter, 7) }, failOnReject)
+})
+
 var totalTests = testSuite.length
 var testCount = 0
 var success = 0
