@@ -2,7 +2,7 @@
 
 var defer = function() {
     var handlers = []
-    var value, error
+    var resolutionValue
 
     var complete = false
     var success = false
@@ -27,8 +27,8 @@ var defer = function() {
           }
 
         if(complete) {
-          if(success) execute(callback, value)
-          else execute(errback, error)
+          if(success) execute(callback, resolutionValue)
+          else execute(errback, resolutionValue)
         } else handlers.push({
           callback: callback,
           errback: errback,
@@ -45,71 +45,62 @@ var defer = function() {
       },
 
       end: function() {
-        if(complete && !success) throw error
+        if(complete && !success) throw resolutionValue
         else handlers.push({})
       }
     }
 
-    function runHandler(handler, val, fulfilled) {
-      if(handler.defered) {
-        var callback = fulfilled ? handler.callback : handler.errback
-        var next = fulfilled ? handler.defered.fulfill : handler.defered.reject
+    function runHandler(handler) {
 
+      if(handler.defered) {
+        var callback = success ? handler.callback : handler.errback
+        var next = success ? handler.defered.fulfill : handler.defered.reject
         try {
-          if(callback instanceof Function) handler.defered.fulfill(callback(val))
-          else next(val)
+          if(callback instanceof Function) handler.defered.fulfill(callback(resolutionValue))
+          else next(resolutionValue)
         } catch(e) {
           handler.defered.reject(e)
         }
+      } else if(!success) throw resolutionValue
+
+    }
+
+    function runHandlers() {
+      handlers.forEach(function(handler) {
+        process.nextTick(function() {
+          runHandler(handler, success)
+        })
+      })
+    }
+
+    function fulfill(val) {
+      if(complete) return
+
+      if(val && val.then instanceof Function) {
+        // If value is a promise itself, wait to it's resolution
+        val.then(fulfill, reject)
+      } else {
+        // If value is not a promise, resolve the promise immediately
+        resolutionValue = val
+        complete = success = true
+        runHandlers()
       }
+    }
+
+    function reject(err) {
+      if(complete) return
+
+      resolutionValue = err
+      complete = true
+      runHandlers()
     }
 
     var defered = {
       promise: promise,
 
-      fulfill: function(val) {
-        if(complete) return
-        value = val
-        complete = success = true
-        if(value && value.then instanceof Function) {
-          // If resolution value is a promise itself
-          // run handers only when it resolves
-          value.then(function(newValue) {
-            handlers.forEach(function(handler) {
-              process.nextTick(function() {
-                runHandler(handler, newValue, true)
-              })
-            })
-          }, function(newError) {
-            handlers.forEach(function(handler) {
-              if(!handler.defered) throw newError
-              process.nextTick(function() {
-                runHandler(handler, newError, false)
-              })
-            })
-          })
-        } else {
-          // If resolution value is not a promise
-          // just run handlers with that value
-          handlers.forEach(function(handler) {
-            process.nextTick(function() {
-              runHandler(handler, value, true)
-            })
-          })
-        }
-      },
+      fulfill: fulfill,
 
-      reject: function(err) {
-        if(complete) return
-        error = err
-        complete = true
-        handlers.forEach(function(handler) {
-          if(!handler.defered) throw error
-          process.nextTick(function() {
-            runHandler(handler, error, false)
-          })
-        })
-      }
+      reject: reject
     }
 
     return defered
